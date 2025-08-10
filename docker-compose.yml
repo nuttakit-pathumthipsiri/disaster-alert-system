@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: disaster_alert_sqlserver
+    environment:
+      ACCEPT_EULA: Y
+      SA_PASSWORD: MyNewPassword123!
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - disaster_alert_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: disaster_alert_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - disaster_alert_network
+
+volumes:
+  sqlserver_data:
+  redis_data:
+
+networks:
+  disaster_alert_network:
+    driver: bridge
