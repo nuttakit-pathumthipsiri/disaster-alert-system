@@ -45,6 +45,9 @@ builder.Services.AddSwaggerGen(c =>
     }
 });
 
+// Add HttpClient for external API calls
+builder.Services.AddHttpClient();
+
 // Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -54,21 +57,21 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis")!));
 
-// Register services
-builder.Services.AddScoped<IRegionService, RegionService>();
+// Register repositories first
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRegionRepository, RegionRepository>();
 builder.Services.AddScoped<IDisasterTypeRepository, DisasterTypeRepository>();
-builder.Services.AddScoped<IRedisService, RedisService>();
-builder.Services.AddScoped<IAlertSettingService, AlertSettingService>();
-builder.Services.AddScoped<IDisasterRisksService, DisasterRisksService>();
-builder.Services.AddScoped<IAlertService, AlertService>();
-builder.Services.AddScoped<IEmailService, SendGridEmailService>();
-
-// Register repositories
 builder.Services.AddScoped<IAlertSettingRepository, AlertSettingRepository>();
 builder.Services.AddScoped<IAlertRepository, AlertRepository>();
 
-
+// Register services
+builder.Services.AddScoped<IRedisService, RedisService>();
+builder.Services.AddScoped<IExternalWeatherService, ExternalWeatherService>();
+builder.Services.AddScoped<IRegionService, RegionService>();
+builder.Services.AddScoped<IAlertSettingService, AlertSettingService>();
+builder.Services.AddScoped<IAlertService, AlertService>();
+builder.Services.AddScoped<IDisasterRisksService, DisasterRisksService>();
+builder.Services.AddScoped<IEmailService, SendGridEmailService>();
 
 // Register SendGrid client
 builder.Services.AddSingleton<ISendGridClient>(sp =>
