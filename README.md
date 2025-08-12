@@ -49,8 +49,6 @@ Edit `src/API/appsettings.json` and configure the following API keys:
 - Get your API key from the dashboard
 - Free tier includes 1,000,000 calls per month
 
-````
-
 ### 3. Run with Docker Compose
 
 Start the required services (SQL Server and Redis) first:
@@ -64,6 +62,7 @@ docker-compose logs -f
 
 # Stop services
 docker-compose down
+
 ````
 
 ### 4. Database Setup
