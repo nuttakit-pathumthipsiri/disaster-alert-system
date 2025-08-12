@@ -163,8 +163,8 @@ appsettings.Development.json
 appsettings.Production.json
 appsettings.Staging.json
 appsettings.Local.json
+appsettings.json
 appsettings.*.json
-!appsettings.json
 !appsettings.example.json
 
 # API Keys and Secrets
