@@ -28,10 +28,13 @@ public static class RiskAssessmentUtility
 
     public static string DetermineRiskLevelString(double riskScore)
     {
-        if (riskScore >= 0.8) return "Critical";
-        if (riskScore >= 0.6) return "High";
-        if (riskScore >= 0.4) return "Medium";
-        if (riskScore >= 0.2) return "Low";
-        return "Minimal";
+        var riskLevel = DetermineRiskLevel(riskScore);
+        return riskLevel switch
+        {
+            RiskLevel.High => "High",
+            RiskLevel.Medium => "Medium",
+            RiskLevel.Low => "Low",
+            _ => "Low"
+        };
     }
 }

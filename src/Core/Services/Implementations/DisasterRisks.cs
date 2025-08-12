@@ -227,21 +227,4 @@ public class DisasterRisksService : IDisasterRisksService
             throw;
         }
     }
-
-    // Risk level determination moved to RiskAssessmentUtility.DetermineRiskLevelString()
-
-    private string GetDisasterTypeNameAsync(int disasterTypeId)
-    {
-        try
-        {
-            // Note: This method should be async in a real implementation
-            // For now, we'll return a placeholder name
-            return $"Disaster Type {disasterTypeId}";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting disaster type name for ID {DisasterTypeId}", disasterTypeId);
-            return $"Disaster Type {disasterTypeId}";
-        }
-    }
 }

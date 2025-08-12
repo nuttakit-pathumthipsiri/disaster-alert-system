@@ -145,39 +145,32 @@ public class AlertService : IAlertService
             _logger.LogInformation("Sending alert for region {RegionId} and disaster type {DisasterTypeId}",
                 request.RegionId, request.DisasterTypeId);
 
-            // Create the alert with default values since the request doesn't provide them
-            var alert = new Alert
-            {
-                RegionId = request.RegionId,
-                DisasterTypeId = request.DisasterTypeId ?? 1, // Default to first disaster type if not specified
-                RiskScore = 85.0, // High risk score for manual alerts
-                RiskLevel = RiskLevel.High,
-                ThresholdValue = 50.0, // Default threshold
-                AlertMessage = RiskAssessmentUtility.GenerateAlertMessage(RiskLevel.High, 85.0, 50.0),
-                DetectedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddHours(24), // Alerts expire after 24 hours
-                Metadata = "Manual alert triggered by user"
-            };
+            // Find existing alert for the region and disaster type
+            var existingAlerts = await _alertRepository.GetByFiltersAsync(request.RegionId, request.DisasterTypeId ?? 1, false);
+            var existingAlert = existingAlerts.FirstOrDefault();
 
-            var createdAlert = await _alertRepository.CreateAsync(alert);
+            if (existingAlert == null)
+            {
+                throw new InvalidOperationException($"No alert found for region {request.RegionId} and disaster type {request.DisasterTypeId ?? 1}");
+            }
 
             // Send email notification
             try
             {
-                await SendEmailNotificationAsync(createdAlert);
-                createdAlert.EmailSent = true;
-                createdAlert.EmailSentAt = DateTime.UtcNow;
-                await _alertRepository.UpdateAsync(createdAlert);
+                await SendEmailNotificationAsync(existingAlert);
+                existingAlert.EmailSent = true;
+                existingAlert.EmailSentAt = DateTime.UtcNow;
+                await _alertRepository.UpdateAsync(existingAlert);
             }
             catch (Exception emailEx)
             {
-                _logger.LogWarning(emailEx, "Failed to send email notification for alert {AlertId}", createdAlert.Id);
+                _logger.LogWarning(emailEx, "Failed to send email notification for alert {AlertId}", existingAlert.Id);
                 // Don't fail the entire operation if email fails
             }
 
-            _logger.LogInformation("Successfully created and sent alert with ID {AlertId}", createdAlert.Id);
+            _logger.LogInformation("Successfully sent alert with ID {AlertId}", existingAlert.Id);
 
-            return await MapToResponseAsync(createdAlert);
+            return await MapToResponseAsync(existingAlert);
         }
         catch (Exception ex)
         {

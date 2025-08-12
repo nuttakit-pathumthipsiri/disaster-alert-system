@@ -65,23 +65,6 @@ public class SendGridEmailService : IEmailService
         }
     }
 
-    public Task SendDisasterAlertEmailsToRegionAsync(int regionId, DisasterRiskReportResponse report)
-    {
-        try
-        {
-            // This method will be called from DisasterRiskAssessmentService
-            // The actual user retrieval should be handled by the calling service
-            _logger.LogInformation("Disaster alert emails will be sent to users in region {RegionId} for {DisasterType}",
-                regionId, report.DisasterTypeName);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error preparing disaster alert emails for region {RegionId}", regionId);
-        }
-
-        return Task.CompletedTask;
-    }
-
     private string GenerateAlertEmailHtml(User user, DisasterRiskReportResponse report, string regionName)
     {
         return $@"
@@ -103,114 +86,14 @@ public class SendGridEmailService : IEmailService
     private string GenerateAlertEmailPlainText(User user, DisasterRiskReportResponse report, string regionName)
     {
         return $@"
-Test Disaster Alert
+                Test Disaster Alert
 
-Hello {user.Email},
+                Hello {user.Email},
 
-This is a test alert for {report.DisasterTypeName} in {regionName}.
+                This is a test alert for {report.DisasterTypeName} in {regionName}.
 
-Risk Level: {report.RiskLevel}
+                Risk Level: {report.RiskLevel}
 
-Test completed at {DateTime.UtcNow:HH:mm:ss}";
-    }
-
-    public async Task<bool> SendAlertEmailAsync(string toEmail, string subject, string message, int alertId)
-    {
-        try
-        {
-            _logger.LogInformation("Sending alert email to {ToEmail} for alert {AlertId}", toEmail, alertId);
-
-            var htmlContent = $@"
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>{subject}</title>
-                </head>
-                <body>
-                    <h1>{subject}</h1>
-                    <div>{message}</div>
-                    <p>Alert ID: {alertId}</p>
-                    <p>Sent at: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC</p>
-                </body>
-                </html>";
-
-            var emailMessage = MailHelper.CreateSingleEmail(
-                new EmailAddress(_fromEmail, _fromName),
-                new EmailAddress(toEmail),
-                subject,
-                message,
-                htmlContent
-            );
-
-            var response = await _sendGridClient.SendEmailAsync(emailMessage);
-
-            if (response.IsSuccessStatusCode)
-            {
-                _logger.LogInformation("Alert email sent successfully to {ToEmail} for alert {AlertId}", toEmail, alertId);
-                return true;
-            }
-            else
-            {
-                _logger.LogWarning("Failed to send alert email to {ToEmail} for alert {AlertId}. Status: {StatusCode}",
-                    toEmail, alertId, response.StatusCode);
-                return false;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error sending alert email to {ToEmail} for alert {AlertId}", toEmail, alertId);
-            return false;
-        }
-    }
-
-    public async Task<bool> SendBulkAlertEmailAsync(IEnumerable<string> toEmails, string subject, string message, int alertId)
-    {
-        try
-        {
-            _logger.LogInformation("Sending bulk alert emails to {EmailCount} recipients for alert {AlertId}", toEmails.Count(), alertId);
-
-            var htmlContent = $@"
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>{subject}</title>
-                </head>
-                <body>
-                    <h1>{subject}</h1>
-                    <div>{message}</div>
-                    <p>Alert ID: {alertId}</p>
-                    <p>Sent at: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC</p>
-                </body>
-                </html>";
-
-            var emailMessages = new List<SendGridMessage>();
-            foreach (var toEmail in toEmails)
-            {
-                var emailMessage = MailHelper.CreateSingleEmail(
-                    new EmailAddress(_fromEmail, _fromName),
-                    new EmailAddress(toEmail),
-                    subject,
-                    message,
-                    htmlContent
-                );
-                emailMessages.Add(emailMessage);
-            }
-
-            var tasks = emailMessages.Select(msg => _sendGridClient.SendEmailAsync(msg));
-            var responses = await Task.WhenAll(tasks);
-
-            var successCount = responses.Count(r => r.IsSuccessStatusCode);
-            var failureCount = responses.Length - successCount;
-
-            _logger.LogInformation("Bulk alert emails completed for alert {AlertId}. Success: {SuccessCount}, Failed: {FailureCount}",
-                alertId, successCount, failureCount);
-
-            return failureCount == 0; // Return true only if all emails were sent successfully
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error sending bulk alert emails for alert {AlertId}", alertId);
-            return false;
-        }
+                Test completed at {DateTime.UtcNow:HH:mm:ss}";
     }
 }
