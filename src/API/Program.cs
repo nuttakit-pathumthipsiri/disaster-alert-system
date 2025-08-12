@@ -1,11 +1,16 @@
 using Core.Services;
+using Core.Services.Implementations;
+using Core.Interfaces;
 using Infrastructure.Data;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
+using API.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using System.Reflection;
+using SendGrid;
+using SendGrid.Helpers.Mail;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,31 +43,6 @@ builder.Services.AddSwaggerGen(c =>
     {
         c.IncludeXmlComments(xmlPath);
     }
-
-    // Add security definitions
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[] {}
-        }
-    });
 });
 
 // Database
@@ -80,12 +60,27 @@ builder.Services.AddScoped<IRegionRepository, RegionRepository>();
 builder.Services.AddScoped<IDisasterTypeRepository, DisasterTypeRepository>();
 builder.Services.AddScoped<IRedisService, RedisService>();
 builder.Services.AddScoped<IAlertSettingService, AlertSettingService>();
+builder.Services.AddScoped<IDisasterRisksService, DisasterRisksService>();
 builder.Services.AddScoped<IAlertService, AlertService>();
-builder.Services.AddScoped<IDisasterRiskService, DisasterRiskService>();
-builder.Services.AddScoped<IExternalWeatherService, ExternalWeatherService>();
+builder.Services.AddScoped<IEmailService, SendGridEmailService>();
 
-// Add HttpClient for external API calls
-builder.Services.AddHttpClient<IExternalWeatherService, ExternalWeatherService>();
+// Register repositories
+builder.Services.AddScoped<IAlertSettingRepository, AlertSettingRepository>();
+builder.Services.AddScoped<IAlertRepository, AlertRepository>();
+
+
+
+// Register SendGrid client
+builder.Services.AddSingleton<ISendGridClient>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var apiKey = configuration["ExternalApis:SendGrid:ApiKey"];
+    if (string.IsNullOrEmpty(apiKey))
+    {
+        throw new InvalidOperationException("SendGrid API key is not configured. Please check your configuration.");
+    }
+    return new SendGridClient(apiKey);
+});
 
 var app = builder.Build();
 
@@ -104,6 +99,10 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseHttpsRedirection();
+
+// Add global exception handler middleware
+app.UseGlobalExceptionHandler();
+
 app.UseAuthorization();
 app.MapControllers();
 

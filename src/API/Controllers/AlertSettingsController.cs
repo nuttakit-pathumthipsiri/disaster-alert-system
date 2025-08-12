@@ -1,14 +1,11 @@
 using Core.DTOs;
 using Core.Services;
-using Core.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 
 namespace API.Controllers;
 
-/// <summary>
-/// Controller for managing disaster alert settings
-/// </summary>
+
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
@@ -22,9 +19,6 @@ public class AlertSettingsController : ControllerBase
         _alertSettingService = alertSettingService;
     }
 
-    /// <summary>
-    /// Creates a new alert setting for disaster monitoring
-    /// </summary>
     /// <param name="request">The alert setting creation request</param>
     /// <returns>The created alert setting information</returns>
     /// <response code="201">Alert setting created successfully</response>
@@ -46,9 +40,6 @@ public class AlertSettingsController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Retrieves a specific alert setting by ID
-    /// </summary>
     /// <param name="id">The unique identifier of the alert setting</param>
     /// <returns>The alert setting information</returns>
     /// <response code="200">Alert setting found successfully</response>
@@ -75,9 +66,6 @@ public class AlertSettingsController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Retrieves all alert settings
-    /// </summary>
     /// <returns>List of all alert settings</returns>
     /// <response code="200">Alert settings retrieved successfully</response>
     /// <response code="500">Internal server error</response>
@@ -96,56 +84,6 @@ public class AlertSettingsController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Retrieves alert settings for a specific region
-    /// </summary>
-    /// <param name="regionId">The ID of the region</param>
-    /// <returns>List of alert settings for the region</returns>
-    /// <response code="200">Alert settings retrieved successfully</response>
-    /// <response code="500">Internal server error</response>
-    [HttpGet("region/{regionId}")]
-    [ProducesResponseType(typeof(IEnumerable<AlertSettingResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<AlertSettingResponse>>> GetAlertSettingsByRegion(int regionId)
-    {
-        try
-        {
-            var alertSettings = await _alertSettingService.GetAlertSettingsByRegionAsync(regionId);
-            return Ok(alertSettings);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Retrieves alert settings by disaster type
-    /// </summary>
-    /// <param name="disasterType">The type of disaster</param>
-    /// <returns>List of alert settings for the disaster type</returns>
-    /// <response code="200">Alert settings retrieved successfully</response>
-    /// <response code="500">Internal server error</response>
-    [HttpGet("disaster-type/{disasterType}")]
-    [ProducesResponseType(typeof(IEnumerable<AlertSettingResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<AlertSettingResponse>>> GetAlertSettingsByDisasterType(int disasterType)
-    {
-        try
-        {
-            if (!Enum.IsDefined(typeof(DisasterTypeEnum), disasterType))
-                return BadRequest(new { message = "Invalid disaster type" });
-
-            var alertSettings = await _alertSettingService.GetAlertSettingsByDisasterTypeAsync(disasterType);
-            return Ok(alertSettings);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Updates an existing alert setting
-    /// </summary>
     /// <param name="id">The unique identifier of the alert setting to update</param>
     /// <param name="request">The updated alert setting data</param>
     /// <returns>The updated alert setting information</returns>
@@ -170,9 +108,6 @@ public class AlertSettingsController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Deletes an alert setting
-    /// </summary>
     /// <param name="id">The unique identifier of the alert setting to delete</param>
     /// <returns>No content on successful deletion</returns>
     /// <response code="204">Alert setting deleted successfully</response>

@@ -1,14 +1,11 @@
 using Core.DTOs;
 using Core.Services;
-using Core.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 
 namespace API.Controllers;
 
-/// <summary>
-/// Controller for managing disaster alerts
-/// </summary>
+
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
@@ -22,72 +19,22 @@ public class AlertsController : ControllerBase
         _alertService = alertService;
     }
 
-    /// <summary>
-    /// Sends a disaster alert to a region and stores it in the database
-    /// </summary>
-    /// <param name="request">The alert request</param>
-    /// <returns>The created alert information</returns>
-    /// <response code="201">Alert sent successfully</response>
-    /// <response code="400">Invalid request data</response>
-    /// <response code="500">Internal server error</response>
-    [HttpPost("send")]
-    [ProducesResponseType(typeof(AlertResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<AlertResponse>> SendAlert(SendAlertRequest request)
-    {
-        try
-        {
-            var alert = await _alertService.SendAlertAsync(request);
-            return CreatedAtAction(nameof(GetAlert), new { id = alert.Id }, alert);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = "Failed to send alert", error = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Retrieves a specific alert by ID
-    /// </summary>
-    /// <param name="id">The unique identifier of the alert</param>
-    /// <returns>The alert information</returns>
-    /// <response code="200">Alert found successfully</response>
-    /// <response code="404">Alert not found</response>
-    /// <response code="500">Internal server error</response>
-    [HttpGet("{id}")]
-    [ProducesResponseType(typeof(AlertResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<AlertResponse>> GetAlert(int id)
-    {
-        try
-        {
-            var alerts = await _alertService.GetAllAlertsAsync();
-            var alert = alerts.FirstOrDefault(a => a.Id == id);
-
-            if (alert == null)
-                return NotFound(new { message = "Alert not found" });
-
-            return Ok(alert);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Retrieves all alerts from the database
-    /// </summary>
-    /// <returns>List of all alerts</returns>
+    /// <param name="regionId">Optional: The ID of the region to filter by</param>
+    /// <param name="disasterTypeId">Optional: The ID of the disaster type to filter by</param>
+    /// <param name="pendingOnly">Optional: If true, returns only pending alerts that haven't had emails sent yet</param>
+    /// <returns>List of alerts based on the filters</returns>
     /// <response code="200">Alerts retrieved successfully</response>
     /// <response code="500">Internal server error</response>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<AlertResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<AlertResponse>>> GetAllAlerts()
+    public async Task<ActionResult<IEnumerable<AlertResponse>>> GetAlerts(
+        [FromQuery] int? regionId = null,
+        [FromQuery] int? disasterTypeId = null,
+        [FromQuery] bool pendingOnly = false)
     {
         try
         {
-            var alerts = await _alertService.GetAllAlertsAsync();
+            var alerts = await _alertService.GetAlertsAsync(regionId, disasterTypeId, pendingOnly);
             return Ok(alerts);
         }
         catch (Exception ex)
@@ -96,75 +43,49 @@ public class AlertsController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Retrieves alerts for a specific region
-    /// </summary>
-    /// <param name="regionId">The ID of the region</param>
-    /// <returns>List of alerts for the region</returns>
-    /// <response code="200">Alerts retrieved successfully</response>
+    /// <param name="request">The send alert request (RegionId is required, DisasterTypeId is optional)</param>
+    /// <returns>The alert information</returns>
+    /// <response code="200">Alert sent successfully</response>
+    /// <response code="400">Invalid request data</response>
     /// <response code="500">Internal server error</response>
-    [HttpGet("region/{regionId}")]
-    [ProducesResponseType(typeof(IEnumerable<AlertResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<AlertResponse>>> GetAlertsByRegion(int regionId)
-    {
-        try
-        {
-            var alerts = await _alertService.GetAlertsByRegionAsync(regionId);
-            return Ok(alerts);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Retrieves alerts by disaster type
-    /// </summary>
-    /// <param name="disasterType">The type of disaster</param>
-    /// <returns>List of alerts for the disaster type</returns>
-    /// <response code="200">Alerts retrieved successfully</response>
-    /// <response code="500">Internal server error</response>
-    [HttpGet("disaster-type/{disasterType}")]
-    [ProducesResponseType(typeof(IEnumerable<AlertResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<AlertResponse>>> GetAlertsByDisasterType(int disasterType)
-    {
-        try
-        {
-            if (!Enum.IsDefined(typeof(DisasterTypeEnum), disasterType))
-                return BadRequest(new { message = "Invalid disaster type" });
-
-            var alerts = await _alertService.GetAlertsByDisasterTypeAsync(disasterType);
-            return Ok(alerts);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Retrieves alerts within a date range
-    /// </summary>
-    /// <param name="startDate">Start date (ISO 8601 format)</param>
-    /// <param name="endDate">End date (ISO 8601 format)</param>
-    /// <returns>List of alerts within the date range</returns>
-    /// <response code="200">Alerts retrieved successfully</response>
-    /// <response code="400">Invalid date format</response>
-    /// <response code="500">Internal server error</response>
-    [HttpGet("date-range")]
-    [ProducesResponseType(typeof(IEnumerable<AlertResponse>), StatusCodes.Status200OK)]
+    [HttpPost("send")]
+    [ProducesResponseType(typeof(AlertResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<AlertResponse>>> GetAlertsByDateRange(
-        [FromQuery] DateTime startDate,
-        [FromQuery] DateTime endDate)
+    public async Task<ActionResult<AlertResponse>> SendAlert(SendDisasterAlertRequest request)
     {
         try
         {
-            if (startDate >= endDate)
-                return BadRequest(new { message = "Start date must be before end date" });
+            var alert = await _alertService.SendAlertAsync(request);
+            return Ok(alert);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = "Failed to send alert", error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+        }
+    }
 
-            var alerts = await _alertService.GetAlertsByDateRangeAsync(startDate, endDate);
+    /// <param name="regionId">Optional: Filter by region ID</param>
+    /// <param name="disasterTypeId">Optional: Filter by disaster type ID</param>
+    /// <param name="startDate">Optional: Filter by start date</param>
+    /// <param name="endDate">Optional: Filter by end date</param>
+    /// <returns>List of sent alerts (alert history)</returns>
+    /// <response code="200">Alert history retrieved successfully</response>
+    /// <response code="500">Internal server error</response>
+    [HttpGet("history")]
+    [ProducesResponseType(typeof(IEnumerable<AlertResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<AlertResponse>>> GetAlertHistory(
+        [FromQuery] int? regionId = null,
+        [FromQuery] int? disasterTypeId = null,
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null)
+    {
+        try
+        {
+            var alerts = await _alertService.GetAlertHistoryAsync(regionId, disasterTypeId, startDate, endDate);
             return Ok(alerts);
         }
         catch (Exception ex)

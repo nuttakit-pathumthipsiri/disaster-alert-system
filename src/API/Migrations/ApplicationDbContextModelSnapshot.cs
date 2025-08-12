@@ -62,7 +62,7 @@ namespace API.Migrations
 
                     b.HasIndex("RegionId");
 
-                    b.ToTable("Alerts");
+                    b.ToTable("Alerts", (string)null);
                 });
 
             modelBuilder.Entity("Core.Models.AlertSetting", b =>
@@ -97,51 +97,7 @@ namespace API.Migrations
 
                     b.HasIndex("RegionId");
 
-                    b.ToTable("AlertSettings");
-                });
-
-            modelBuilder.Entity("Core.Models.DisasterRisk", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CalculatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DisasterTypeId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ExternalApiData")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("RegionId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RiskLevel")
-                        .HasColumnType("int");
-
-                    b.Property<double>("RiskScore")
-                        .HasColumnType("float");
-
-                    b.Property<bool>("ShouldTriggerAlert")
-                        .HasColumnType("bit");
-
-                    b.Property<double>("ThresholdValue")
-                        .HasColumnType("float");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DisasterTypeId");
-
-                    b.HasIndex("RegionId");
-
-                    b.ToTable("DisasterRisks");
+                    b.ToTable("AlertSettings", (string)null);
                 });
 
             modelBuilder.Entity("Core.Models.DisasterType", b =>
@@ -168,7 +124,7 @@ namespace API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DisasterTypes");
+                    b.ToTable("DisasterTypes", (string)null);
                 });
 
             modelBuilder.Entity("Core.Models.Region", b =>
@@ -204,7 +160,47 @@ namespace API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Regions");
+                    b.ToTable("Regions", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Models.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("RegionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("RegionId");
+
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("DisasterTypeRegion", b =>
@@ -219,7 +215,7 @@ namespace API.Migrations
 
                     b.HasIndex("RegionsId");
 
-                    b.ToTable("DisasterTypeRegion");
+                    b.ToTable("DisasterTypeRegion", (string)null);
                 });
 
             modelBuilder.Entity("Core.Models.Alert", b =>
@@ -260,21 +256,13 @@ namespace API.Migrations
                     b.Navigation("Region");
                 });
 
-            modelBuilder.Entity("Core.Models.DisasterRisk", b =>
+            modelBuilder.Entity("Core.Models.User", b =>
                 {
-                    b.HasOne("Core.Models.DisasterType", "DisasterType")
-                        .WithMany("DisasterRisks")
-                        .HasForeignKey("DisasterTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Core.Models.Region", "Region")
-                        .WithMany("DisasterRisks")
+                        .WithMany()
                         .HasForeignKey("RegionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("DisasterType");
 
                     b.Navigation("Region");
                 });
@@ -297,15 +285,11 @@ namespace API.Migrations
             modelBuilder.Entity("Core.Models.DisasterType", b =>
                 {
                     b.Navigation("AlertSettings");
-
-                    b.Navigation("DisasterRisks");
                 });
 
             modelBuilder.Entity("Core.Models.Region", b =>
                 {
                     b.Navigation("AlertSettings");
-
-                    b.Navigation("DisasterRisks");
                 });
 #pragma warning restore 612, 618
         }

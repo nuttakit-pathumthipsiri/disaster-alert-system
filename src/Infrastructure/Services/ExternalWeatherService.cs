@@ -1,13 +1,12 @@
-using Core.Services;
+using Core.Interfaces;
+using Core.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace Infrastructure.Services;
 
-/// <summary>
-/// Implementation of external weather service using OpenWeather and USGS APIs
-/// </summary>
+
 public class ExternalWeatherService : IExternalWeatherService
 {
     private readonly HttpClient _httpClient;
@@ -171,7 +170,6 @@ public class ExternalWeatherService : IExternalWeatherService
                 Temperature = weatherData.Temperature,
                 Humidity = weatherData.Humidity,
                 WindSpeed = weatherData.WindSpeed,
-                DroughtIndex = Math.Min(100, (temperatureRisk + humidityRisk + windRisk) / 3),
                 RiskScore = Math.Min(100, (temperatureRisk + humidityRisk + windRisk) / 3),
                 Timestamp = DateTime.UtcNow
             };
@@ -224,7 +222,6 @@ public class ExternalWeatherService : IExternalWeatherService
             Temperature = 25 + random.Next(-5, 15),
             Humidity = 30 + random.Next(0, 40),
             WindSpeed = random.Next(0, 25),
-            DroughtIndex = random.Next(0, 100),
             Timestamp = DateTime.UtcNow
         };
     }
@@ -248,14 +245,45 @@ public class ExternalWeatherService : IExternalWeatherService
         return degrees * Math.PI / 180;
     }
 
-    private double CalculateDroughtIndex(double temperature, double humidity, double precipitation)
+    public async Task<double> GetRiskScoreAsync(double latitude, double longitude, string disasterType)
     {
-        // Simple drought index calculation
-        var tempFactor = Math.Max(0, temperature - 25) / 10;
-        var humidityFactor = Math.Max(0, 50 - humidity) / 50;
-        var precipitationFactor = Math.Max(0, 50 - precipitation) / 50;
+        try
+        {
+            switch (disasterType.ToLower())
+            {
+                case "earthquake":
+                    var earthquakeData = await GetEarthquakeDataAsync(latitude, longitude);
+                    // Calculate earthquake risk based on magnitude and distance
+                    var earthquakeRisk = Math.Min(100, earthquakeData.Magnitude * 10 + (100 - earthquakeData.Distance));
+                    return earthquakeRisk;
 
-        return Math.Min(100, (tempFactor + humidityFactor + precipitationFactor) * 33.33);
+                case "wildfire":
+                    var wildfireData = await GetWildfireRiskDataAsync(latitude, longitude);
+                    return wildfireData.RiskScore;
+
+                case "flood":
+                    var weatherData = await GetWeatherDataAsync(latitude, longitude);
+                    // Calculate flood risk based on precipitation and humidity
+                    var floodRisk = Math.Min(100, weatherData.Precipitation * 0.5 + (100 - weatherData.Humidity) * 0.3);
+                    return floodRisk;
+
+                default:
+                    // Default risk calculation based on weather conditions
+                    var defaultWeatherData = await GetWeatherDataAsync(latitude, longitude);
+                    var defaultRisk = Math.Min(100,
+                        (defaultWeatherData.Temperature > 30 ? 30 : 0) +
+                        (defaultWeatherData.WindSpeed > 20 ? 40 : 0) +
+                        (defaultWeatherData.Precipitation > 50 ? 30 : 0));
+                    return defaultRisk;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to calculate risk score for disaster type {DisasterType} at coordinates {Latitude}, {Longitude}",
+                disasterType, latitude, longitude);
+            // Return a default risk score in case of error
+            return 25.0;
+        }
     }
 }
 

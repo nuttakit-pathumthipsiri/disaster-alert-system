@@ -1,4 +1,4 @@
-using Core.Services;
+using Core.Interfaces;
 using StackExchange.Redis;
 
 namespace Infrastructure.Services;
@@ -37,5 +37,15 @@ public class RedisService : IRedisService
     public async Task<bool> ExistsAsync(string key)
     {
         return await _db.KeyExistsAsync(key);
+    }
+
+    public async Task<bool> DeleteAsync(string key)
+    {
+        return await _db.KeyDeleteAsync(key);
+    }
+
+    public async Task<bool> SetExpiryAsync(string key, TimeSpan expiry)
+    {
+        return await _db.KeyExpireAsync(key, expiry);
     }
 }

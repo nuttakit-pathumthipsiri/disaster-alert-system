@@ -1,14 +1,12 @@
 using Core.DTOs;
 using Core.Services;
+using Core.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
-using System.ComponentModel.DataAnnotations;
 
 namespace API.Controllers;
 
-/// <summary>
-/// Controller for managing disaster alert regions
-/// </summary>
+
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
@@ -22,9 +20,6 @@ public class RegionsController : ControllerBase
         _regionService = regionService;
     }
 
-    /// <summary>
-    /// Creates a new disaster alert region
-    /// </summary>
     /// <param name="request">The region creation request</param>
     /// <returns>The created region information</returns>
     /// <response code="201">Region created successfully</response>
@@ -45,20 +40,13 @@ public class RegionsController : ControllerBase
             var region = await _regionService.CreateRegionAsync(request);
             return CreatedAtAction(nameof(GetRegion), new { id = region.Id }, region);
         }
-        catch (ValidationException ex)
+        catch (Exception)
         {
-            return BadRequest(new { message = "Validation error", error = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            // TODO: Add proper logging
-            return StatusCode(500, new { message = "Failed to create region", error = ex.Message });
+            // Global exception handler will catch and handle this
+            throw;
         }
     }
 
-    /// <summary>
-    /// Retrieves a specific region by ID
-    /// </summary>
     /// <param name="id">The unique identifier of the region</param>
     /// <returns>The region information</returns>
     /// <response code="200">Region found successfully</response>
@@ -82,14 +70,10 @@ public class RegionsController : ControllerBase
         }
         catch (Exception ex)
         {
-            // TODO: Add proper logging
             return StatusCode(500, new { message = "Internal server error", error = ex.Message });
         }
     }
 
-    /// <summary>
-    /// Retrieves all available regions
-    /// </summary>
     /// <returns>List of all regions</returns>
     /// <response code="200">Regions retrieved successfully</response>
     /// <response code="500">Internal server error</response>
@@ -108,20 +92,15 @@ public class RegionsController : ControllerBase
         }
         catch (Exception ex)
         {
-            // TODO: Add proper logging
             return StatusCode(500, new { message = "Internal server error", error = ex.Message });
         }
     }
 
-    /// <summary>
-    /// Updates an existing region
-    /// </summary>
     /// <param name="id">The unique identifier of the region to update</param>
     /// <param name="request">The region update request</param>
     /// <returns>The updated region information</returns>
     /// <response code="200">Region updated successfully</response>
     /// <response code="400">Invalid request data</response>
-    /// <response code="404">Region not found</response>
     /// <response code="500">Internal server error</response>
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(RegionResponse), StatusCodes.Status200OK)]
@@ -151,9 +130,6 @@ public class RegionsController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Deletes a region
-    /// </summary>
     /// <param name="id">The unique identifier of the region to delete</param>
     /// <returns>No content on successful deletion</returns>
     /// <response code="204">Region deleted successfully</response>
@@ -177,7 +153,6 @@ public class RegionsController : ControllerBase
         }
         catch (Exception ex)
         {
-            // TODO: Add proper logging
             return StatusCode(500, new { message = "Internal server error", error = ex.Message });
         }
     }

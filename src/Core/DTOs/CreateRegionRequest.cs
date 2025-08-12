@@ -33,5 +33,5 @@ public class CreateRegionRequest
     /// List of disaster type IDs to monitor in this region
     /// </summary>
     [Required(ErrorMessage = "At least one disaster type must be specified")]
-    public List<int> MonitoredDisasterTypeIds { get; set; } = new();
+    public List<int> MonitoredDisasterTypes { get; set; } = new();
 }

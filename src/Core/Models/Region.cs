@@ -51,6 +51,5 @@ public class Region
     // Navigation properties
     [JsonIgnore]
     public virtual ICollection<AlertSetting> AlertSettings { get; set; } = new List<AlertSetting>();
-    [JsonIgnore]
-    public virtual ICollection<DisasterRisk> DisasterRisks { get; set; } = new List<DisasterRisk>();
+
 }

@@ -33,5 +33,5 @@ public class DisasterType
     // Navigation properties
     public virtual ICollection<Region> Regions { get; set; } = new List<Region>();
     public virtual ICollection<AlertSetting> AlertSettings { get; set; } = new List<AlertSetting>();
-    public virtual ICollection<DisasterRisk> DisasterRisks { get; set; } = new List<DisasterRisk>();
+
 }

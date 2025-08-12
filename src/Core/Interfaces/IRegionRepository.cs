@@ -1,6 +1,7 @@
 using Core.Models;
 
-namespace Core.Services;
+namespace Core.Interfaces;
+
 
 public interface IRegionRepository
 {

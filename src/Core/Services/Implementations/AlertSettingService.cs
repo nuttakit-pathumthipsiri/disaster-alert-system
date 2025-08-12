@@ -1,24 +1,28 @@
 using Core.DTOs;
 using Core.Models;
+using Core.Interfaces;
 using Core.Services;
-using Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Infrastructure.Services;
+namespace Core.Services.Implementations;
 
-/// <summary>
-/// Implementation of alert setting service for managing disaster alert configurations
-/// </summary>
 public class AlertSettingService : IAlertSettingService
 {
-    private readonly ApplicationDbContext _context;
     private readonly ILogger<AlertSettingService> _logger;
+    private readonly IDisasterTypeRepository _disasterTypeRepository;
+    private readonly IRegionRepository _regionRepository;
+    private readonly IAlertSettingRepository _alertSettingRepository;
 
-    public AlertSettingService(ApplicationDbContext context, ILogger<AlertSettingService> logger)
+    public AlertSettingService(
+        ILogger<AlertSettingService> logger,
+        IDisasterTypeRepository disasterTypeRepository,
+        IRegionRepository regionRepository,
+        IAlertSettingRepository alertSettingRepository)
     {
-        _context = context;
         _logger = logger;
+        _disasterTypeRepository = disasterTypeRepository;
+        _regionRepository = regionRepository;
+        _alertSettingRepository = alertSettingRepository;
     }
 
     public async Task<AlertSettingResponse> CreateAlertSettingAsync(CreateAlertSettingRequest request)
@@ -29,18 +33,17 @@ public class AlertSettingService : IAlertSettingService
                 request.RegionId, request.DisasterTypeId);
 
             // Check if region exists
-            var region = await _context.Regions.FindAsync(request.RegionId);
+            var region = await _regionRepository.GetByIdAsync(request.RegionId);
             if (region == null)
                 throw new InvalidOperationException($"Region with ID {request.RegionId} not found");
 
             // Check if disaster type exists
-            var disasterType = await _context.DisasterTypes.FindAsync(request.DisasterTypeId);
+            var disasterType = await _disasterTypeRepository.GetByIdAsync(request.DisasterTypeId);
             if (disasterType == null)
-                throw new InvalidOperationException($"Disaster type with ID {request.DisasterTypeId} not found");
+                throw new InvalidOperationException($"Disaster type with ID {request.DisasterTypeId} not found or is inactive");
 
             // Check if alert setting already exists for this region and disaster type
-            var existingSetting = await _context.AlertSettings
-                .FirstOrDefaultAsync(a => a.RegionId == request.RegionId && a.DisasterTypeId == request.DisasterTypeId);
+            var existingSetting = await _alertSettingRepository.GetByRegionAndDisasterTypeAsync(request.RegionId, request.DisasterTypeId);
 
             if (existingSetting != null)
                 throw new InvalidOperationException($"Alert setting already exists for region {request.RegionId} and disaster type {request.DisasterTypeId}");
@@ -54,12 +57,11 @@ public class AlertSettingService : IAlertSettingService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.AlertSettings.Add(alertSetting);
-            await _context.SaveChangesAsync();
+            var createdSetting = await _alertSettingRepository.CreateAsync(alertSetting);
 
-            _logger.LogInformation("Successfully created alert setting with ID {AlertSettingId}", alertSetting.Id);
+            _logger.LogInformation("Successfully created alert setting with ID {AlertSettingId}", createdSetting.Id);
 
-            return await MapToResponseAsync(alertSetting);
+            return await MapToResponseAsync(createdSetting);
         }
         catch (Exception ex)
         {
@@ -72,13 +74,7 @@ public class AlertSettingService : IAlertSettingService
     {
         try
         {
-            var alertSettings = await _context.AlertSettings
-                .Include(a => a.Region)
-                .Include(a => a.DisasterType)
-                .Where(a => a.IsActive)
-                .OrderBy(a => a.RegionId)
-                .ThenBy(a => a.DisasterTypeId)
-                .ToListAsync();
+            var alertSettings = await _alertSettingRepository.GetAllAsync();
 
             var responses = new List<AlertSettingResponse>();
             foreach (var alertSetting in alertSettings)
@@ -99,12 +95,7 @@ public class AlertSettingService : IAlertSettingService
     {
         try
         {
-            var alertSettings = await _context.AlertSettings
-                .Include(a => a.Region)
-                .Include(a => a.DisasterType)
-                .Where(a => a.RegionId == regionId && a.IsActive)
-                .OrderBy(a => a.DisasterTypeId)
-                .ToListAsync();
+            var alertSettings = await _alertSettingRepository.GetByRegionAsync(regionId);
 
             var responses = new List<AlertSettingResponse>();
             foreach (var alertSetting in alertSettings)
@@ -125,12 +116,7 @@ public class AlertSettingService : IAlertSettingService
     {
         try
         {
-            var alertSettings = await _context.AlertSettings
-                .Include(a => a.Region)
-                .Include(a => a.DisasterType)
-                .Where(a => a.DisasterTypeId == disasterTypeId && a.IsActive)
-                .OrderBy(a => a.RegionId)
-                .ToListAsync();
+            var alertSettings = await _alertSettingRepository.GetByDisasterTypeAsync(disasterTypeId);
 
             var responses = new List<AlertSettingResponse>();
             foreach (var alertSetting in alertSettings)
@@ -151,37 +137,32 @@ public class AlertSettingService : IAlertSettingService
     {
         try
         {
-            _logger.LogInformation("Updating alert setting with ID {AlertSettingId}", id);
-
-            var alertSetting = await _context.AlertSettings.FindAsync(id);
-            if (alertSetting == null)
+            var existingSetting = await _alertSettingRepository.GetByIdAsync(id);
+            if (existingSetting == null)
                 throw new InvalidOperationException($"Alert setting with ID {id} not found");
 
             // Check if region exists
-            var region = await _context.Regions.FindAsync(request.RegionId);
+            var region = await _regionRepository.GetByIdAsync(request.RegionId);
             if (region == null)
                 throw new InvalidOperationException($"Region with ID {request.RegionId} not found");
 
-            // Check if another alert setting already exists for this region and disaster type
-            var existingSetting = await _context.AlertSettings
-                .FirstOrDefaultAsync(a => a.RegionId == request.RegionId &&
-                                        a.DisasterTypeId == request.DisasterTypeId &&
-                                        a.Id != id);
+            // Check if disaster type exists
+            var disasterType = await _disasterTypeRepository.GetByIdAsync(request.DisasterTypeId);
+            if (disasterType == null)
+                throw new InvalidOperationException($"Disaster type with ID {request.DisasterTypeId} not found or is inactive");
 
-            if (existingSetting != null)
-                throw new InvalidOperationException($"Alert setting already exists for region {request.RegionId} and disaster type {request.DisasterTypeId}");
+            // Update the alert setting
+            existingSetting.RegionId = request.RegionId;
+            existingSetting.DisasterTypeId = request.DisasterTypeId;
+            existingSetting.ThresholdRiskScore = request.ThresholdRiskScore;
+            existingSetting.IsActive = request.IsActive;
+            existingSetting.UpdatedAt = DateTime.UtcNow;
 
-            alertSetting.RegionId = request.RegionId;
-            alertSetting.DisasterTypeId = request.DisasterTypeId;
-            alertSetting.ThresholdRiskScore = request.ThresholdRiskScore;
-            alertSetting.IsActive = request.IsActive;
-            alertSetting.UpdatedAt = DateTime.UtcNow;
+            var updatedSetting = await _alertSettingRepository.UpdateAsync(existingSetting);
 
-            await _context.SaveChangesAsync();
+            _logger.LogInformation("Successfully updated alert setting with ID {AlertSettingId}", updatedSetting.Id);
 
-            _logger.LogInformation("Successfully updated alert setting with ID {AlertSettingId}", id);
-
-            return await MapToResponseAsync(alertSetting);
+            return await MapToResponseAsync(updatedSetting);
         }
         catch (Exception ex)
         {
@@ -194,17 +175,12 @@ public class AlertSettingService : IAlertSettingService
     {
         try
         {
-            _logger.LogInformation("Deleting alert setting with ID {AlertSettingId}", id);
-
-            var alertSetting = await _context.AlertSettings.FindAsync(id);
-            if (alertSetting == null)
-                return false;
-
-            _context.AlertSettings.Remove(alertSetting);
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation("Successfully deleted alert setting with ID {AlertSettingId}", id);
-            return true;
+            var result = await _alertSettingRepository.DeleteAsync(id);
+            if (result)
+            {
+                _logger.LogInformation("Successfully deleted alert setting with ID {AlertSettingId}", id);
+            }
+            return result;
         }
         catch (Exception ex)
         {
@@ -217,32 +193,28 @@ public class AlertSettingService : IAlertSettingService
     {
         try
         {
-            var alertSetting = await _context.AlertSettings
-                .Where(a => a.RegionId == regionId && a.DisasterTypeId == disasterType.Id && a.IsActive)
-                .Select(a => a.ThresholdRiskScore)
-                .FirstOrDefaultAsync();
-
-            return alertSetting;
+            var alertSetting = await _alertSettingRepository.GetByRegionAndDisasterTypeAsync(regionId, disasterType.Id);
+            return alertSetting?.ThresholdRiskScore;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get threshold for region {RegionId} and disaster type {DisasterTypeId}", regionId, disasterType.Id);
-            return null;
+            throw;
         }
     }
 
     private async Task<AlertSettingResponse> MapToResponseAsync(AlertSetting alertSetting)
     {
-        var region = await _context.Regions.FindAsync(alertSetting.RegionId);
-        var disasterType = await _context.DisasterTypes.FindAsync(alertSetting.DisasterTypeId);
+        var region = await _regionRepository.GetByIdAsync(alertSetting.RegionId);
+        var disasterType = await _disasterTypeRepository.GetByIdAsync(alertSetting.DisasterTypeId);
 
         return new AlertSettingResponse
         {
             Id = alertSetting.Id,
             RegionId = alertSetting.RegionId,
-            RegionName = region?.Name ?? $"Region {alertSetting.RegionId}",
+            RegionName = region?.Name ?? "Unknown",
             DisasterTypeId = alertSetting.DisasterTypeId,
-            DisasterTypeName = disasterType?.Name ?? $"DisasterType {alertSetting.DisasterTypeId}",
+            DisasterTypeName = disasterType?.Name ?? "Unknown",
             ThresholdRiskScore = alertSetting.ThresholdRiskScore,
             IsActive = alertSetting.IsActive,
             CreatedAt = alertSetting.CreatedAt,

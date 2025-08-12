@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250810201226_InitialCreate")]
+    [Migration("20250811093143_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -103,50 +103,6 @@ namespace API.Migrations
                     b.ToTable("AlertSettings");
                 });
 
-            modelBuilder.Entity("Core.Models.DisasterRisk", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CalculatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DisasterTypeId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ExternalApiData")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("RegionId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RiskLevel")
-                        .HasColumnType("int");
-
-                    b.Property<double>("RiskScore")
-                        .HasColumnType("float");
-
-                    b.Property<bool>("ShouldTriggerAlert")
-                        .HasColumnType("bit");
-
-                    b.Property<double>("ThresholdValue")
-                        .HasColumnType("float");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DisasterTypeId");
-
-                    b.HasIndex("RegionId");
-
-                    b.ToTable("DisasterRisks");
-                });
-
             modelBuilder.Entity("Core.Models.DisasterType", b =>
                 {
                     b.Property<int>("Id")
@@ -210,6 +166,46 @@ namespace API.Migrations
                     b.ToTable("Regions");
                 });
 
+            modelBuilder.Entity("Core.Models.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("RegionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("RegionId");
+
+                    b.ToTable("Users");
+                });
+
             modelBuilder.Entity("DisasterTypeRegion", b =>
                 {
                     b.Property<int>("DisasterTypesId")
@@ -263,21 +259,13 @@ namespace API.Migrations
                     b.Navigation("Region");
                 });
 
-            modelBuilder.Entity("Core.Models.DisasterRisk", b =>
+            modelBuilder.Entity("Core.Models.User", b =>
                 {
-                    b.HasOne("Core.Models.DisasterType", "DisasterType")
-                        .WithMany("DisasterRisks")
-                        .HasForeignKey("DisasterTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Core.Models.Region", "Region")
-                        .WithMany("DisasterRisks")
+                        .WithMany()
                         .HasForeignKey("RegionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("DisasterType");
 
                     b.Navigation("Region");
                 });
@@ -300,15 +288,11 @@ namespace API.Migrations
             modelBuilder.Entity("Core.Models.DisasterType", b =>
                 {
                     b.Navigation("AlertSettings");
-
-                    b.Navigation("DisasterRisks");
                 });
 
             modelBuilder.Entity("Core.Models.Region", b =>
                 {
                     b.Navigation("AlertSettings");
-
-                    b.Navigation("DisasterRisks");
                 });
 #pragma warning restore 612, 618
         }

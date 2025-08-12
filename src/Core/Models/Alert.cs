@@ -1,17 +1,17 @@
 namespace Core.Models;
 
 /// <summary>
-/// Represents a disaster alert that has been sent to a region
+/// Represents an alert that has been detected and stored in the database
 /// </summary>
 public class Alert
 {
     /// <summary>
-    /// The unique identifier of the alert
+    /// The unique identifier of the risk alert
     /// </summary>
     public int Id { get; set; }
 
     /// <summary>
-    /// The ID of the region where the alert was sent
+    /// The ID of the region where the risk was detected
     /// </summary>
     public int RegionId { get; set; }
 
@@ -31,14 +31,29 @@ public class Alert
     public virtual DisasterType DisasterType { get; set; } = null!;
 
     /// <summary>
+    /// The calculated risk score that triggered the alert
+    /// </summary>
+    public double RiskScore { get; set; }
+
+    /// <summary>
     /// The risk level of the disaster (Low, Medium, High)
     /// </summary>
     public RiskLevel RiskLevel { get; set; }
 
     /// <summary>
-    /// The calculated risk score that triggered the alert
+    /// The threshold value that was exceeded
     /// </summary>
-    public double RiskScore { get; set; }
+    public double ThresholdValue { get; set; }
+
+    /// <summary>
+    /// Flag indicating whether email has been sent for this alert
+    /// </summary>
+    public bool EmailSent { get; set; }
+
+    /// <summary>
+    /// Timestamp when the email was sent (null if not sent yet)
+    /// </summary>
+    public DateTime? EmailSentAt { get; set; }
 
     /// <summary>
     /// The message content of the alert
@@ -46,64 +61,22 @@ public class Alert
     public string AlertMessage { get; set; } = string.Empty;
 
     /// <summary>
-    /// The timestamp when the alert was sent
+    /// External API data that was used for risk calculation
     /// </summary>
-    public DateTime SentAt { get; set; }
+    public string? ExternalApiData { get; set; }
 
     /// <summary>
-    /// The status of the alert (Sent, Delivered, Failed)
+    /// The timestamp when the risk was detected
     /// </summary>
-    public AlertStatus Status { get; set; }
+    public DateTime DetectedAt { get; set; }
 
     /// <summary>
-    /// Additional metadata about the alert (e.g., external API response)
+    /// The timestamp when the risk alert expires
+    /// </summary>
+    public DateTime ExpiresAt { get; set; }
+
+    /// <summary>
+    /// Additional metadata about the alert
     /// </summary>
     public string? Metadata { get; set; }
-}
-
-/// <summary>
-/// Risk levels for disaster assessment
-/// </summary>
-public enum RiskLevel
-{
-    /// <summary>
-    /// Low risk - minimal threat
-    /// </summary>
-    Low,
-
-    /// <summary>
-    /// Medium risk - moderate threat
-    /// </summary>
-    Medium,
-
-    /// <summary>
-    /// High risk - significant threat
-    /// </summary>
-    High
-}
-
-/// <summary>
-/// Status of alert delivery
-/// </summary>
-public enum AlertStatus
-{
-    /// <summary>
-    /// Alert has been created and queued for sending
-    /// </summary>
-    Pending,
-
-    /// <summary>
-    /// Alert has been sent successfully
-    /// </summary>
-    Sent,
-
-    /// <summary>
-    /// Alert has been delivered to the recipient
-    /// </summary>
-    Delivered,
-
-    /// <summary>
-    /// Alert failed to send
-    /// </summary>
-    Failed
 }

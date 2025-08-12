@@ -30,5 +30,5 @@ public class UpdateRegionRequest
     /// <summary>
     /// List of disaster type IDs to monitor in this region
     /// </summary>
-    public List<int>? MonitoredDisasterTypeIds { get; set; }
+    public List<int>? MonitoredDisasterTypes { get; set; }
 }

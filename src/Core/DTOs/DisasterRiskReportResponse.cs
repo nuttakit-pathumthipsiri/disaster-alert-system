@@ -1,11 +1,9 @@
-using Core.Models;
-
 namespace Core.DTOs;
 
 /// <summary>
-/// Response model for disaster risk assessment
+/// Response DTO for disaster risk report
 /// </summary>
-public class DisasterRiskResponse
+public class DisasterRiskReportResponse
 {
     /// <summary>
     /// The ID of the region
@@ -18,42 +16,47 @@ public class DisasterRiskResponse
     public string RegionName { get; set; } = string.Empty;
 
     /// <summary>
-    /// The ID of the disaster type being assessed
+    /// The ID of the disaster type
     /// </summary>
     public int DisasterTypeId { get; set; }
 
     /// <summary>
-    /// The name of the disaster type being assessed
+    /// The name of the disaster type
     /// </summary>
     public string DisasterTypeName { get; set; } = string.Empty;
 
     /// <summary>
-    /// The calculated risk score (0-100)
+    /// The calculated risk score (0.0 - 100.0)
     /// </summary>
     public double RiskScore { get; set; }
 
     /// <summary>
-    /// The risk level based on the score
+    /// The risk level based on the score (Low/Medium/High)
     /// </summary>
-    public RiskLevel RiskLevel { get; set; }
+    public string RiskLevel { get; set; } = string.Empty;
 
     /// <summary>
-    /// Whether an alert should be triggered based on the risk assessment
+    /// Whether an alert should be triggered based on threshold
     /// </summary>
     public bool AlertTriggered { get; set; }
 
     /// <summary>
-    /// The threshold value that triggers an alert
+    /// The threshold value from AlertSettings that determines alert triggering
     /// </summary>
     public double ThresholdValue { get; set; }
 
     /// <summary>
-    /// When the risk assessment was calculated
+    /// Raw data from external APIs used in calculation
+    /// </summary>
+    public string? ExternalApiData { get; set; }
+
+    /// <summary>
+    /// The timestamp when this risk assessment was calculated
     /// </summary>
     public DateTime CalculatedAt { get; set; }
 
     /// <summary>
-    /// Additional details about the risk assessment
+    /// The timestamp when this data expires (for caching)
     /// </summary>
-    public string Details { get; set; } = string.Empty;
+    public DateTime ExpiresAt { get; set; }
 }
